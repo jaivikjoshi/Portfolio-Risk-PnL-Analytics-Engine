@@ -5,7 +5,17 @@ from datetime import date
 from sqlalchemy import Select, delete, select
 from sqlalchemy.orm import Session
 
-from app.db.models import IngestionBatch, Instrument, Portfolio, Price, Trade, ValidationIssue
+from app.db.models import (
+    BenchmarkPrice,
+    FxRate,
+    IngestionBatch,
+    Instrument,
+    Portfolio,
+    PortfolioDailySnapshot,
+    Price,
+    Trade,
+    ValidationIssue,
+)
 
 
 def get_portfolio(db: Session, portfolio_id: str) -> Portfolio | None:
@@ -32,6 +42,47 @@ def list_prices(db: Session, end_date: date | None = None) -> list[Price]:
         stmt = stmt.where(Price.price_date <= end_date)
     stmt = stmt.order_by(Price.instrument_id.asc(), Price.price_date.asc())
     return list(db.scalars(stmt))
+
+
+def list_fx_rates(db: Session, end_date: date | None = None) -> list[FxRate]:
+    stmt: Select[tuple[FxRate]] = select(FxRate)
+    if end_date:
+        stmt = stmt.where(FxRate.rate_date <= end_date)
+    stmt = stmt.order_by(FxRate.from_currency.asc(), FxRate.to_currency.asc(), FxRate.rate_date.asc())
+    return list(db.scalars(stmt))
+
+
+def list_benchmark_prices(
+    db: Session, benchmark_id: str, start_date: date, end_date: date
+) -> list[BenchmarkPrice]:
+    stmt = (
+        select(BenchmarkPrice)
+        .where(
+            BenchmarkPrice.benchmark_id == benchmark_id,
+            BenchmarkPrice.price_date >= start_date,
+            BenchmarkPrice.price_date <= end_date,
+        )
+        .order_by(BenchmarkPrice.price_date.asc())
+    )
+    return list(db.scalars(stmt))
+
+
+def upsert_snapshot(db: Session, snapshot: PortfolioDailySnapshot) -> PortfolioDailySnapshot:
+    existing = db.scalar(
+        select(PortfolioDailySnapshot).where(
+            PortfolioDailySnapshot.portfolio_id == snapshot.portfolio_id,
+            PortfolioDailySnapshot.snapshot_date == snapshot.snapshot_date,
+        )
+    )
+    if existing:
+        existing.market_value = snapshot.market_value
+        existing.daily_return = snapshot.daily_return
+        existing.cumulative_return = snapshot.cumulative_return
+        existing.positions_count = snapshot.positions_count
+        existing.base_currency = snapshot.base_currency
+        return existing
+    db.add(snapshot)
+    return snapshot
 
 
 def list_instruments(db: Session) -> list[Instrument]:
@@ -85,4 +136,3 @@ def add_issue(
 
 def clear_validation_issues(db: Session) -> None:
     db.execute(delete(ValidationIssue))
-

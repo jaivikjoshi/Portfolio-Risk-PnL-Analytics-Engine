@@ -11,7 +11,7 @@ import pandas as pd
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.models import IngestionBatch, Instrument, Portfolio, Price, Trade
+from app.db.models import BenchmarkPrice, FxRate, IngestionBatch, Instrument, Portfolio, Price, Trade
 from app.db.repositories import add_issue, existing_batch_by_hash
 from app.schemas.ingestion import IngestionResult
 from app.utils.dates import parse_date
@@ -41,6 +41,8 @@ REQUIRED_COLUMNS = {
         "currency",
     },
     "prices": {"instrument_id", "price_date", "close_price", "currency"},
+    "fx_rates": {"rate_date", "from_currency", "to_currency", "rate"},
+    "benchmarks": {"benchmark_id", "price_date", "close_price", "currency"},
 }
 
 
@@ -152,6 +154,26 @@ def _price_from_row(row: pd.Series, batch_id: str) -> Price:
     )
 
 
+def _fx_rate_from_row(row: pd.Series, batch_id: str) -> FxRate:
+    return FxRate(
+        rate_date=parse_date(row["rate_date"]),
+        from_currency=_clean_currency(row["from_currency"]),
+        to_currency=_clean_currency(row["to_currency"]),
+        rate=_positive_float(row["rate"]),
+        batch_id=batch_id,
+    )
+
+
+def _benchmark_from_row(row: pd.Series, batch_id: str) -> BenchmarkPrice:
+    return BenchmarkPrice(
+        benchmark_id=_clean_string(row["benchmark_id"]).upper(),
+        price_date=parse_date(row["price_date"]),
+        close_price=_positive_float(row["close_price"]),
+        currency=_clean_currency(row["currency"]),
+        batch_id=batch_id,
+    )
+
+
 def _object_from_row(source_type: str, row: pd.Series, batch_id: str) -> object:
     if source_type == "portfolios":
         return _portfolio_from_row(row)
@@ -161,6 +183,10 @@ def _object_from_row(source_type: str, row: pd.Series, batch_id: str) -> object:
         return _trade_from_row(row, batch_id)
     if source_type == "prices":
         return _price_from_row(row, batch_id)
+    if source_type == "fx_rates":
+        return _fx_rate_from_row(row, batch_id)
+    if source_type == "benchmarks":
+        return _benchmark_from_row(row, batch_id)
     raise ValueError(f"Unsupported source_type: {source_type}")
 
 
@@ -292,6 +318,7 @@ def seed_sample_data(db: Session, *, force: bool = True) -> list[IngestionResult
         ("instruments", base / "instruments.csv"),
         ("trades", base / "trades.csv"),
         ("prices", base / "prices.csv"),
+        ("fx_rates", base / "fx_rates.csv"),
+        ("benchmarks", base / "benchmarks.csv"),
     ]
     return [ingest_csv_path(db, source_type=source, path=path, force=force) for source, path in ordered_sources]
-

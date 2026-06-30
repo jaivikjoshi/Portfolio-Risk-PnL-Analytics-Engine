@@ -8,6 +8,11 @@ A backend-first portfolio analytics engine for ingesting trades and prices, vali
 - Tracks ingestion batches, source hashes, row counts, rejected rows, and validation issues.
 - Validates missing prices, invalid rows, duplicate trades, unknown instruments, and sell quantity breaks.
 - Computes weighted-average-cost positions, realized PnL, unrealized PnL, total PnL, daily returns, exposures, volatility, Sharpe ratio, Sortino ratio, max drawdown, and historical VaR.
+- Supports weighted-average, FIFO, and LIFO PnL views.
+- Converts non-base-currency positions with seeded FX rates.
+- Compares portfolio returns against a seeded SPY benchmark.
+- Persists daily portfolio value snapshots for repeatable reporting.
+- Serves a lightweight HTML risk dashboard.
 - Exposes analytics through documented FastAPI endpoints.
 - Includes deterministic tests for the financial math and API workflow.
 
@@ -26,8 +31,8 @@ Expected seeded PnL headline:
 
 ```text
 realized_pnl: 344.6
-unrealized_pnl: 489.4
-total_pnl: 834.0
+unrealized_pnl: 562.41
+total_pnl: 907.01
 ```
 
 ## Tech Stack
@@ -93,6 +98,7 @@ Query PnL:
 
 ```bash
 curl "http://localhost:8000/api/v1/portfolios/P_MAIN/pnl?start_date=2026-01-01&end_date=2026-01-10"
+curl "http://localhost:8000/api/v1/portfolios/P_MAIN/pnl?start_date=2026-01-01&end_date=2026-01-10&cost_method=fifo"
 ```
 
 Query exposure:
@@ -106,6 +112,14 @@ Query returns and risk:
 ```bash
 curl "http://localhost:8000/api/v1/portfolios/P_MAIN/returns?start_date=2026-01-02&end_date=2026-01-10"
 curl "http://localhost:8000/api/v1/portfolios/P_MAIN/risk?start_date=2026-01-02&end_date=2026-01-10"
+curl "http://localhost:8000/api/v1/portfolios/P_MAIN/benchmark?benchmark_id=SPY&start_date=2026-01-02&end_date=2026-01-10"
+curl -X POST "http://localhost:8000/api/v1/portfolios/P_MAIN/snapshots?start_date=2026-01-02&end_date=2026-01-10"
+```
+
+Dashboard:
+
+```text
+http://localhost:8000/dashboard/P_MAIN?start_date=2026-01-02&as_of=2026-01-10
 ```
 
 ## Golden PnL Example
@@ -142,6 +156,9 @@ Expected values:
 | `GET /api/v1/portfolios/{portfolio_id}/returns` | Daily and cumulative returns |
 | `GET /api/v1/portfolios/{portfolio_id}/exposures` | Exposure by instrument, sector, currency, or asset class |
 | `GET /api/v1/portfolios/{portfolio_id}/risk` | Volatility, Sharpe, Sortino, drawdown, VaR |
+| `GET /api/v1/portfolios/{portfolio_id}/benchmark` | Compare portfolio returns to a benchmark |
+| `POST /api/v1/portfolios/{portfolio_id}/snapshots` | Persist daily portfolio value snapshots |
+| `GET /dashboard/{portfolio_id}` | Lightweight HTML risk dashboard |
 
 ## Data Model
 
@@ -151,6 +168,9 @@ Core tables:
 - `instruments`
 - `trades`
 - `prices`
+- `fx_rates`
+- `benchmark_prices`
+- `portfolio_daily_snapshots`
 - `ingestion_batches`
 - `validation_issues`
 
@@ -203,6 +223,10 @@ Current tests cover:
 | Positions | `app/analytics/positions.py`, `/positions` endpoint |
 | Realized PnL | `app/analytics/pnl.py`, golden dataset tests |
 | Unrealized PnL | Position valuation tests and `/pnl` endpoint |
+| FIFO/LIFO accounting | `app/analytics/tax_lots.py`, `cost_method` query parameter |
+| FX support | `app/analytics/fx.py`, seeded CAD Shopify position |
+| Benchmark comparison | `app/analytics/benchmark.py`, `/benchmark` endpoint |
+| Persisted reporting snapshots | `portfolio_daily_snapshots`, `/snapshots` endpoint |
 | Returns | `app/analytics/returns.py`, `/returns` endpoint |
 | Asset exposure | `app/analytics/exposures.py`, `/exposures` endpoint |
 | Python, SQL, Pandas, NumPy | Analytics modules, SQLAlchemy models, migrations |

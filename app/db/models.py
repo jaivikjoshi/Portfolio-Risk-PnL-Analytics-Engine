@@ -102,6 +102,52 @@ class Price(Base, TimestampMixin):
     instrument: Mapped[Instrument] = relationship(back_populates="prices")
 
 
+class FxRate(Base, TimestampMixin):
+    __tablename__ = "fx_rates"
+    __table_args__ = (
+        UniqueConstraint("rate_date", "from_currency", "to_currency", name="uq_fx_rate_pair_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rate_date: Mapped[date] = mapped_column(Date, index=True)
+    from_currency: Mapped[str] = mapped_column(String(3), index=True)
+    to_currency: Mapped[str] = mapped_column(String(3), index=True)
+    rate: Mapped[float] = mapped_column(Float)
+    batch_id: Mapped[str | None] = mapped_column(String(96), index=True, nullable=True)
+
+
+class BenchmarkPrice(Base, TimestampMixin):
+    __tablename__ = "benchmark_prices"
+    __table_args__ = (
+        UniqueConstraint("benchmark_id", "price_date", name="uq_benchmark_price_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    benchmark_id: Mapped[str] = mapped_column(String(64), index=True)
+    price_date: Mapped[date] = mapped_column(Date, index=True)
+    close_price: Mapped[float] = mapped_column(Float)
+    currency: Mapped[str] = mapped_column(String(3))
+    batch_id: Mapped[str | None] = mapped_column(String(96), index=True, nullable=True)
+
+
+class PortfolioDailySnapshot(Base, TimestampMixin):
+    __tablename__ = "portfolio_daily_snapshots"
+    __table_args__ = (
+        UniqueConstraint("portfolio_id", "snapshot_date", name="uq_snapshot_portfolio_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    portfolio_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("portfolios.portfolio_id"), index=True
+    )
+    snapshot_date: Mapped[date] = mapped_column(Date, index=True)
+    market_value: Mapped[float] = mapped_column(Float)
+    daily_return: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cumulative_return: Mapped[float] = mapped_column(Float)
+    positions_count: Mapped[int] = mapped_column(Integer)
+    base_currency: Mapped[str] = mapped_column(String(3))
+
+
 class ValidationIssue(Base):
     __tablename__ = "validation_issues"
 
@@ -120,4 +166,3 @@ class ValidationIssue(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     batch: Mapped[IngestionBatch | None] = relationship(back_populates="issues")
-

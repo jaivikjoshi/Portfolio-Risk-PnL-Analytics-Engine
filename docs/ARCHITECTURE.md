@@ -35,6 +35,9 @@ The MVP uses weighted average cost accounting:
 - Buy fees increase cost basis.
 - Sell fees reduce realized PnL.
 - Unrealized PnL marks remaining quantity against the latest price on or before the report date.
+- FIFO and LIFO PnL consume open lots using tax-lot queues.
+- FX conversion uses latest available rates to translate local positions into portfolio base currency.
+- Benchmark comparison aligns cumulative return series by date.
+- Snapshots persist daily portfolio value, return, and position count records.
 
 Short selling is disabled by default.
-

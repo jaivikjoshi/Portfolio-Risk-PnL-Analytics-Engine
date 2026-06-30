@@ -6,6 +6,7 @@ from typing import Any
 
 import pandas as pd
 
+from app.analytics.fx import latest_fx_rate
 from app.core.exceptions import AnalyticsError
 from app.utils.money import round_money
 
@@ -27,8 +28,11 @@ def compute_position_states(
     instruments: dict[str, dict[str, Any]],
     *,
     as_of: date,
+    base_currency: str = "USD",
+    fx_rates: list[dict[str, Any]] | None = None,
     allow_short_selling: bool = False,
 ) -> list[dict[str, Any]]:
+    fx_rates = fx_rates or []
     states: dict[str, dict[str, float]] = defaultdict(
         lambda: {"quantity": 0.0, "cost_basis": 0.0, "realized_pnl": 0.0}
     )
@@ -85,6 +89,12 @@ def compute_position_states(
         market_price = float(price_row["close_price"])
         market_value = quantity * market_price
         unrealized = (market_price - average_cost) * quantity
+        fx_rate = latest_fx_rate(
+            fx_rates,
+            from_currency=instrument["currency"],
+            to_currency=base_currency,
+            as_of=as_of,
+        )
 
         positions.append(
             {
@@ -100,8 +110,11 @@ def compute_position_states(
                 "market_price": round_money(market_price),
                 "market_value": round_money(market_value),
                 "unrealized_pnl": round_money(unrealized),
+                "fx_rate": round_money(fx_rate),
+                "base_currency": base_currency,
+                "market_value_base": round_money(market_value * fx_rate),
+                "unrealized_pnl_base": round_money(unrealized * fx_rate),
             }
         )
 
     return positions
-

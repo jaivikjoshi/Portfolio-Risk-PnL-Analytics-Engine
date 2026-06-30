@@ -24,6 +24,8 @@ def compute_exposures(
     *,
     as_of: date,
     group_by: str,
+    base_currency: str = "USD",
+    fx_rates: list[dict[str, Any]] | None = None,
     allow_short_selling: bool = False,
 ) -> dict[str, Any]:
     if group_by not in GROUP_FIELDS:
@@ -34,19 +36,24 @@ def compute_exposures(
         prices,
         instruments,
         as_of=as_of,
+        base_currency=base_currency,
+        fx_rates=fx_rates,
         allow_short_selling=allow_short_selling,
     )
-    total_market_value = sum(position["market_value"] for position in positions)
+    total_market_value = sum(position.get("market_value_base", position["market_value"]) for position in positions)
     if not positions:
         return {"total_market_value": 0.0, "exposures": []}
 
     field = GROUP_FIELDS[group_by]
     df = pd.DataFrame(positions)
-    grouped = df.groupby(field)["market_value"].sum().reset_index()
+    df["exposure_value"] = df["market_value_base"].where(
+        df["market_value_base"].notna(), df["market_value"]
+    )
+    grouped = df.groupby(field)["exposure_value"].sum().reset_index()
     exposures = []
 
-    for _, row in grouped.sort_values("market_value", ascending=False).iterrows():
-        market_value = float(row["market_value"])
+    for _, row in grouped.sort_values("exposure_value", ascending=False).iterrows():
+        market_value = float(row["exposure_value"])
         exposures.append(
             {
                 "group": str(row[field]),
@@ -60,4 +67,3 @@ def compute_exposures(
         )
 
     return {"total_market_value": round_money(total_market_value), "exposures": exposures}
-

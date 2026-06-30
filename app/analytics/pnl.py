@@ -5,6 +5,7 @@ from datetime import date
 from typing import Any
 
 from app.analytics.positions import compute_position_states
+from app.analytics.tax_lots import compute_tax_lot_pnl
 from app.core.exceptions import AnalyticsError
 from app.utils.money import round_money
 
@@ -66,8 +67,27 @@ def compute_pnl(
     *,
     start_date: date,
     end_date: date,
+    base_currency: str = "USD",
+    fx_rates: list[dict[str, Any]] | None = None,
+    cost_method: str = "weighted_average",
     allow_short_selling: bool = False,
 ) -> dict[str, Any]:
+    fx_rates = fx_rates or []
+    if cost_method in {"fifo", "lifo"}:
+        return compute_tax_lot_pnl(
+            trades,
+            prices,
+            instruments,
+            start_date=start_date,
+            end_date=end_date,
+            method=cost_method,
+            base_currency=base_currency,
+            fx_rates=fx_rates,
+            allow_short_selling=allow_short_selling,
+        )
+    if cost_method != "weighted_average":
+        raise ValueError("cost_method must be weighted_average, fifo, or lifo")
+
     realized = compute_realized_pnl_by_instrument(
         trades,
         start_date=start_date,
@@ -79,6 +99,8 @@ def compute_pnl(
         prices,
         instruments,
         as_of=end_date,
+        base_currency=base_currency,
+        fx_rates=fx_rates,
         allow_short_selling=allow_short_selling,
     )
 
@@ -90,13 +112,16 @@ def compute_pnl(
         instrument = instruments[instrument_id]
         realized_value = realized.get(instrument_id, 0.0)
         unrealized_value = position_by_id.get(instrument_id, {}).get("unrealized_pnl", 0.0)
+        unrealized_value_base = position_by_id.get(instrument_id, {}).get(
+            "unrealized_pnl_base", unrealized_value
+        )
         by_instrument.append(
             {
                 "instrument_id": instrument_id,
                 "ticker": instrument["ticker"],
                 "realized_pnl": round_money(realized_value),
-                "unrealized_pnl": round_money(unrealized_value),
-                "total_pnl": round_money(realized_value + unrealized_value),
+                "unrealized_pnl": round_money(unrealized_value_base),
+                "total_pnl": round_money(realized_value + unrealized_value_base),
             }
         )
 
@@ -108,4 +133,3 @@ def compute_pnl(
         "total_pnl": round_money(total_realized + total_unrealized),
         "by_instrument": by_instrument,
     }
-

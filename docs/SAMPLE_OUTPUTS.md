@@ -25,8 +25,8 @@ Response excerpt:
 {
   "portfolio_id": "P_MAIN",
   "realized_pnl": 344.6,
-  "unrealized_pnl": 489.4,
-  "total_pnl": 834.0,
+  "unrealized_pnl": 562.41,
+  "total_pnl": 907.01,
   "by_instrument": [
     {
       "instrument_id": "I_AAPL",
@@ -36,6 +36,16 @@ Response excerpt:
       "total_pnl": 577.0
     }
   ]
+}
+```
+
+FIFO excerpt:
+
+```json
+{
+  "realized_pnl": 398.2,
+  "unrealized_pnl": 510.814,
+  "total_pnl": 909.014
 }
 ```
 
@@ -51,22 +61,22 @@ Response excerpt:
 
 ```json
 {
-  "total_market_value": 5690.0,
+  "total_market_value": 6509.5,
   "exposures": [
+    {
+      "group": "Technology",
+      "market_value": 2949.5,
+      "exposure_percentage": 0.453107
+    },
     {
       "group": "Rates",
       "market_value": 2300.0,
-      "exposure_percentage": 0.404218
-    },
-    {
-      "group": "Technology",
-      "market_value": 2130.0,
-      "exposure_percentage": 0.374341
+      "exposure_percentage": 0.35333
     },
     {
       "group": "Financials",
       "market_value": 1260.0,
-      "exposure_percentage": 0.221441
+      "exposure_percentage": 0.193563
     }
   ]
 }
@@ -85,11 +95,50 @@ Response excerpt:
 ```json
 {
   "observations": 8,
-  "annualized_volatility": 5.336389,
-  "sharpe_ratio": 8.555233,
-  "sortino_ratio": 14.803765,
+  "annualized_volatility": 5.199128,
+  "sharpe_ratio": 9.63379,
+  "sortino_ratio": null,
   "max_drawdown": -0.291667,
-  "var_95": -1112.44052
+  "var_95": -1200.35896
 }
 ```
 
+## FX Position
+
+The seeded portfolio includes Shopify in CAD:
+
+```json
+{
+  "ticker": "SHOP",
+  "currency": "CAD",
+  "fx_rate": 0.745,
+  "market_value": 1100.0,
+  "market_value_base": 819.5,
+  "unrealized_pnl": 98.0,
+  "unrealized_pnl_base": 73.01
+}
+```
+
+## Benchmark
+
+Response excerpt:
+
+```json
+{
+  "benchmark_id": "SPY",
+  "observations": 9,
+  "ending_active_return": 2.233917
+}
+```
+
+## Snapshots
+
+Response excerpt:
+
+```json
+{
+  "snapshots_created": 9,
+  "latest_market_value": 6509.5,
+  "latest_positions_count": 5
+}
+```

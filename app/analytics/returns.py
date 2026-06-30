@@ -16,8 +16,11 @@ def compute_daily_values(
     *,
     start_date: date,
     end_date: date,
+    base_currency: str = "USD",
+    fx_rates: list[dict[str, Any]] | None = None,
     allow_short_selling: bool = False,
 ) -> list[dict[str, Any]]:
+    fx_rates = fx_rates or []
     if start_date > end_date:
         return []
 
@@ -30,9 +33,11 @@ def compute_daily_values(
                 prices,
                 instruments,
                 as_of=as_of,
+                base_currency=base_currency,
+                fx_rates=fx_rates,
                 allow_short_selling=allow_short_selling,
             )
-            market_value = sum(position["market_value"] for position in positions)
+            market_value = sum(position.get("market_value_base", position["market_value"]) for position in positions)
         except Exception:
             market_value = 0.0
         values.append({"date": as_of, "market_value": round_money(market_value)})
@@ -46,6 +51,8 @@ def compute_returns(
     *,
     start_date: date,
     end_date: date,
+    base_currency: str = "USD",
+    fx_rates: list[dict[str, Any]] | None = None,
     allow_short_selling: bool = False,
 ) -> list[dict[str, Any]]:
     values = compute_daily_values(
@@ -54,6 +61,8 @@ def compute_returns(
         instruments,
         start_date=start_date,
         end_date=end_date,
+        base_currency=base_currency,
+        fx_rates=fx_rates,
         allow_short_selling=allow_short_selling,
     )
     if not values:
@@ -80,4 +89,3 @@ def compute_returns(
         previous = market_value
 
     return output
-

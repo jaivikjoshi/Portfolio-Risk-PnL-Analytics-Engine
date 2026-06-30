@@ -12,7 +12,7 @@ Short selling is disabled by default. A sell that exceeds current holdings is re
 
 ## Weighted Average Cost
 
-The MVP uses weighted average cost for open positions.
+The default PnL method uses weighted average cost for open positions.
 
 For buys:
 
@@ -42,6 +42,36 @@ Market price is the latest available close on or before the requested report dat
 ```text
 total_pnl = realized_pnl + unrealized_pnl
 ```
+
+## FIFO and LIFO
+
+The PnL endpoint also supports tax-lot style reporting:
+
+```text
+GET /api/v1/portfolios/P_MAIN/pnl?...&cost_method=fifo
+GET /api/v1/portfolios/P_MAIN/pnl?...&cost_method=lifo
+```
+
+FIFO consumes the oldest open buy lots first. LIFO consumes the newest open buy lots first. Buy fees are allocated into per-unit cost. Sell fees reduce realized PnL.
+
+For the seeded AAPL example:
+
+| Method | Realized PnL | Unrealized PnL |
+| --- | ---: | ---: |
+| weighted_average | 344.60 | 232.40 |
+| fifo | 398.20 | 178.80 |
+| lifo | 297.70 | 279.30 |
+
+## FX Conversion
+
+Positions retain local-currency values and also report base-currency values.
+
+```text
+market_value_base = market_value_local * latest_fx_rate
+unrealized_pnl_base = unrealized_pnl_local * latest_fx_rate
+```
+
+The seeded portfolio includes Shopify in CAD and converts it to the portfolio base currency, USD, using the latest CAD/USD rate on or before the report date.
 
 ## Daily Returns
 
@@ -99,3 +129,24 @@ Historical VaR:
 var_95 = percentile(daily_returns, 5) * latest_portfolio_value
 ```
 
+## Benchmark Comparison
+
+Benchmark comparison aligns portfolio cumulative returns and benchmark cumulative returns by date.
+
+```text
+active_return = portfolio_cumulative_return - benchmark_cumulative_return
+```
+
+The seeded benchmark is `SPY`.
+
+## Daily Snapshots
+
+The snapshot endpoint persists daily portfolio values so repeated reports can reuse audited daily records.
+
+Stored fields:
+
+- market value
+- daily return
+- cumulative return
+- positions count
+- base currency
