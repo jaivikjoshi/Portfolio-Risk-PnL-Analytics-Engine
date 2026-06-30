@@ -1,0 +1,5 @@
+trade_id,portfolio_id,instrument_id,trade_date,side,quantity,price,fees,currency
+BAD_001,P_MAIN,I_AAPL,2026-01-02,BUY,-10,10.00,1.00,USD
+BAD_002,P_MAIN,I_AAPL,2026-01-02,HOLD,10,10.00,1.00,USD
+BAD_003,P_MAIN,I_UNKNOWN,2026-01-02,BUY,10,10.00,1.00,USD
+

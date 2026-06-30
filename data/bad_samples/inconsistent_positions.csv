@@ -1,0 +1,3 @@
+trade_id,portfolio_id,instrument_id,trade_date,side,quantity,price,fees,currency
+BAD_SELL_001,P_MAIN,I_AAPL,2026-01-01,SELL,1000,10.00,1.00,USD
+
