@@ -11,6 +11,25 @@ A backend-first portfolio analytics engine for ingesting trades and prices, vali
 - Exposes analytics through documented FastAPI endpoints.
 - Includes deterministic tests for the financial math and API workflow.
 
+## Demo in 60 Seconds
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+python scripts/seed_db.py
+python scripts/run_validation.py
+python scripts/generate_report.py
+```
+
+Expected seeded PnL headline:
+
+```text
+realized_pnl: 344.6
+unrealized_pnl: 489.4
+total_pnl: 834.0
+```
+
 ## Tech Stack
 
 - Python
@@ -136,6 +155,14 @@ Core tables:
 - `validation_issues`
 
 The schema is defined in SQLAlchemy models and captured in Alembic migration `20260630_0001_initial_schema`.
+
+## Documentation
+
+- [PRD](docs/PRD.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API examples](docs/API_EXAMPLES.md)
+- [Calculation methods](docs/CALCULATION_METHODS.md)
+- [Sample outputs](docs/SAMPLE_OUTPUTS.md)
 
 ## Validation Rules
 
